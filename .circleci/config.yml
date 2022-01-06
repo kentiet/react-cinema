@@ -11,7 +11,7 @@ jobs:
           name: Show current branch
           command: echo ${CURRENT_BRANCH}
       - restore_cache:
-          key:
+          keys:
             - app-{{checksum "package.json"}}
             - app-
       - run:
@@ -22,10 +22,10 @@ jobs:
             - node_modules
           key: app-{{checksum "package.json"}}
 
-  deploy-to-aws-cloudfront:
+  deploy-to-aws-s3:
     docker:
       - image: circleci/node:16.13.0
-    working_directory: ~/repo   
+    working_directory: ~/repo
     steps:
       - checkout
       - run:
@@ -35,10 +35,10 @@ jobs:
           name: Installing AWS CLI
           working_directory: /
           command: |
-              sudo apt-get -y -qq update
-              sudo apt-get install -y awscli
-              sudo apt-get install -y python-pip python-dev build-essential
-      - run: 
+            sudo apt-get -y -qq update
+            sudo apt-get install -y awscli
+            sudo apt-get install -y python-pip python-dev build-essential
+      - run:
           name: Build Project
           command: |
             npm install
@@ -48,7 +48,7 @@ jobs:
             echo "Build successful"
       - run:
           name: Deploy to aws s3
-          command: | 
+          command: |
             if ["${CURRENT_BRANCH}" == "master"] 
             then 
               aws --region ${AWS_REGION} s3 sync ~/repo/build s3://${AWS_PROD_BUCKET} --delete
@@ -58,10 +58,11 @@ jobs:
             else
               aws --region ${AWS_REGION} s3 sync ~/repo/build s3://${AWS_DEV_BUCKET} --delete
             fi
-              deploy-to-aws-s3:
+
+  deploy-to-aws-cloudfront:
     docker:
       - image: circleci/node:16.13.0
-    working_directory: ~/repo   
+    working_directory: ~/repo
     steps:
       - checkout
       - run:
@@ -71,10 +72,10 @@ jobs:
           name: Installing AWS CLI
           working_directory: /
           command: |
-              sudo apt-get -y -qq update
-              sudo apt-get install -y awscli
-              sudo apt-get install -y python-pip python-dev build-essential
-      - run: 
+            sudo apt-get -y -qq update
+            sudo apt-get install -y awscli
+            sudo apt-get install -y python-pip python-dev build-essential
+      - run:
           name: Build Project
           command: |
             npm install
@@ -84,7 +85,7 @@ jobs:
             echo "Build successful"
       - run:
           name: Deploy to aws cloudfront
-          command: | 
+          command: |
             aws configure set preview.cloudfront
             if ["${CURRENT_BRANCH}" == "master"] 
             then
@@ -95,7 +96,7 @@ jobs:
             else
               aws cloudfront create-invalidation --distribution-id ${DEV_DISTRIBUTION_ID} --path /\*
             fi
-  
+
   workflows:
     build-and-deploy:
       jobs:
@@ -117,4 +118,4 @@ jobs:
                 only:
                   - develop
                   - staging
-                  - master 
+                  - master
