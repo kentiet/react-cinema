@@ -98,7 +98,8 @@ jobs:
             fi
 
   workflows:
-    build_and_deploy:
+    version: 2
+    build-test-and-deploy:
       jobs:
         - build
         - deploy-to-aws-s3:
